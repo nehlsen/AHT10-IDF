@@ -5,9 +5,6 @@
 
 static const char *LOG_TAG = "AHT10";
 
-#define AHT10_ADDRESS_0X38         0x38  //chip I2C address no.1 for AHT10, address pin connected to GND
-#define AHT10_ADDRESS_0X39         0x39  //chip I2C address no.2 for AHT10, address pin connected to Vcc
-
 #define AHT10_INIT_CMD             0xE1  //initialization command for AHT10
 #define AHT10_START_MEASURMENT_CMD 0xAC  //start measurment command
 #define AHT10_NORMAL_CMD           0xA8  //normal cycle mode command, no info in datasheet!!!
@@ -26,16 +23,17 @@ static const char *LOG_TAG = "AHT10";
 #define AHT10_CMD_DELAY            350   //at least 300 milliseconds, no info in datasheet!!!
 #define AHT10_SOFT_RESET_DELAY     20    //less than 20 milliseconds
 
-#define AHT10_FORCE_READ_DATA      true  //force to read data
-#define AHT10_USE_READ_DATA        false //force to use data from previous read
-#define AHT10_ERROR                0xFF  //returns 255, if communication error is occurred
-
-//static const int I2CDisplaySpeed = CONFIG_SSD1306_DEFAULT_I2C_SPEED;
-static const int I2CDisplaySpeed = 100000;
-//static const int I2CPortNumber = CONFIG_SSD1306_DEFAULT_I2C_PORT_NUMBER;
+#if defined(CONFIG_AHT10_I2C_PORT_NUMBER_1)
+static const i2c_port_t I2CPortNumber = I2C_NUM_1;
+#else
 static const i2c_port_t I2CPortNumber = I2C_NUM_0;
-//static const int SCLPin = CONFIG_SSD1306_DEFAULT_I2C_SCL_PIN;
-//static const int SDAPin = CONFIG_SSD1306_DEFAULT_I2C_SDA_PIN;
+#endif
+
+#if defined(CONFIG_AHT10_I2C_ADDRESS_0X39)
+static const uint8_t I2CAddress = 0x39;
+#else
+static const uint8_t I2CAddress = 0x38;
+#endif
 
 AHT10::AHT10()
 {
@@ -49,34 +47,34 @@ AHT10::AHT10()
 
 void AHT10::initBus()
 {
-    ESP_LOGI(LOG_TAG, "initBus()");
+    ESP_LOGV(LOG_TAG, "initBus()");
 
     i2c_config_t Config;
     memset(&Config, 0, sizeof(i2c_config_t));
 
     Config.mode = I2C_MODE_MASTER;
-    Config.sda_io_num = GPIO_NUM_5;
+    Config.sda_io_num = static_cast<gpio_num_t>(CONFIG_AHT10_PIN_SDA);
     Config.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    Config.scl_io_num = GPIO_NUM_4;
+    Config.scl_io_num = static_cast<gpio_num_t>(CONFIG_AHT10_PIN_SCL);
     Config.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    Config.master.clk_speed = I2CDisplaySpeed;
+    Config.master.clk_speed = CONFIG_AHT10_I2C_CLOCK_SPEED;
 
     ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_param_config(I2CPortNumber, &Config));
     ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_driver_install(I2CPortNumber, Config.mode, 0, 0, 0));
     vTaskDelay(pdMS_TO_TICKS(AHT10_POWER_ON_DELAY));
 }
 
-// normal mode
+// normal mode - one time
 bool AHT10::initSensor()
 {
-    ESP_LOGI(LOG_TAG, "initSensor()");
+    ESP_LOGV(LOG_TAG, "initSensor()");
 
     i2c_cmd_handle_t CommandHandle = nullptr;
     bool Result = false;
 
     if ((CommandHandle = i2c_cmd_link_create()) != nullptr) {
         i2c_master_start(CommandHandle);
-        i2c_master_write_byte(CommandHandle, (AHT10_ADDRESS_0X38 << 1) | I2C_MASTER_WRITE, true);
+        i2c_master_write_byte(CommandHandle, (I2CAddress << 1) | I2C_MASTER_WRITE, true);
         i2c_master_write_byte(CommandHandle, AHT10_NORMAL_CMD, true);
         i2c_master_write_byte(CommandHandle, AHT10_DATA_NOP, true);
         i2c_master_write_byte(CommandHandle, AHT10_DATA_NOP, true);
@@ -85,7 +83,7 @@ bool AHT10::initSensor()
         Result = i2c_master_cmd_begin(I2CPortNumber, CommandHandle, pdMS_TO_TICKS(1000)) == ESP_OK;
         i2c_cmd_link_delete(CommandHandle);
 
-//        ESP_LOGI(LOG_TAG, "initSensor(), WRITE Result: %s", (Result ? "OK" : "FAIL"));
+        ESP_LOGD(LOG_TAG, "initSensor(), WRITE Result: %s", (Result ? "OK" : "FAIL"));
     }
 
     vTaskDelay(pdMS_TO_TICKS(AHT10_CMD_DELAY));
@@ -93,6 +91,7 @@ bool AHT10::initSensor()
     return Result;
 }
 
+// continuous
 //bool AHT10::setCycleMode(void)
 //{
 //    Wire.beginTransmission(_address);
@@ -115,14 +114,14 @@ bool AHT10::initSensor()
 
 bool AHT10::loadFactoryCalibration()
 {
-//    ESP_LOGI(LOG_TAG, "loadFactoryCalibration()");
+    ESP_LOGV(LOG_TAG, "loadFactoryCalibration()");
 
     i2c_cmd_handle_t CommandHandle = nullptr;
     bool Result = false;
 
     if ((CommandHandle = i2c_cmd_link_create()) != nullptr) {
         i2c_master_start(CommandHandle);
-        i2c_master_write_byte(CommandHandle, (AHT10_ADDRESS_0X38 << 1) | I2C_MASTER_WRITE, true);
+        i2c_master_write_byte(CommandHandle, (I2CAddress << 1) | I2C_MASTER_WRITE, true);
         i2c_master_write_byte(CommandHandle, AHT10_INIT_CMD, true);
         i2c_master_write_byte(CommandHandle, AHT10_INIT_CAL_ENABLE, true);
         i2c_master_write_byte(CommandHandle, AHT10_DATA_NOP, true);
@@ -131,7 +130,7 @@ bool AHT10::loadFactoryCalibration()
         Result = i2c_master_cmd_begin(I2CPortNumber, CommandHandle, pdMS_TO_TICKS(1000)) == ESP_OK;
         i2c_cmd_link_delete(CommandHandle);
 
-//        ESP_LOGI(LOG_TAG, "loadFactoryCalibration(), Result: %s", (Result ? "OK" : "FAIL"));
+        ESP_LOGD(LOG_TAG, "loadFactoryCalibration(), Result: %s", (Result ? "OK" : "FAIL"));
     }
 
     vTaskDelay(pdMS_TO_TICKS(AHT10_CMD_DELAY));
@@ -141,14 +140,14 @@ bool AHT10::loadFactoryCalibration()
 
 bool AHT10::readRawData()
 {
-//    ESP_LOGI(LOG_TAG, "readRawData()");
+    ESP_LOGV(LOG_TAG, "readRawData()");
 
     i2c_cmd_handle_t CommandHandle = nullptr;
     bool Result = false;
 
     if ((CommandHandle = i2c_cmd_link_create()) != nullptr) {
         i2c_master_start(CommandHandle);
-        i2c_master_write_byte(CommandHandle, (AHT10_ADDRESS_0X38 << 1) | I2C_MASTER_WRITE, true);
+        i2c_master_write_byte(CommandHandle, (I2CAddress << 1) | I2C_MASTER_WRITE, true);
         i2c_master_write_byte(CommandHandle, AHT10_START_MEASURMENT_CMD, true);
         i2c_master_write_byte(CommandHandle, AHT10_DATA_MEASURMENT_CMD, true);
         i2c_master_write_byte(CommandHandle, AHT10_DATA_NOP, true);
@@ -157,25 +156,26 @@ bool AHT10::readRawData()
         Result = i2c_master_cmd_begin(I2CPortNumber, CommandHandle, pdMS_TO_TICKS(1000)) == ESP_OK;
         i2c_cmd_link_delete(CommandHandle);
 
-//        ESP_LOGI(LOG_TAG, "readRawData(), WRITE Result: %s", (Result ? "OK" : "FAIL"));
+        ESP_LOGD(LOG_TAG, "readRawData(), WRITE Result: %s", (Result ? "OK" : "FAIL"));
     }
 
     if (!Result) {
         return false;
     }
     if (!isCalibrated()) {
+        ESP_LOGW(LOG_TAG, "readRawData(), NOT calibrated");
 //        return false;
     }
     if (isBusy()) {
         vTaskDelay(pdMS_TO_TICKS(AHT10_MEASURMENT_DELAY));
-//        ESP_LOGI(LOG_TAG, "readRawData(), isBusy!, now? %s / status:%d", (isBusy() ? "Y" : "N"), m_statusByte);
+        ESP_LOGD(LOG_TAG, "readRawData(), isBusy!, now? %s / status:%d", (isBusy() ? "Y" : "N"), m_statusByte);
     }
 
     uint8_t data[6];
     uint8_t *pData = &data[0];
     if ((CommandHandle = i2c_cmd_link_create()) != nullptr) {
         i2c_master_start(CommandHandle);
-        i2c_master_write_byte(CommandHandle, (AHT10_ADDRESS_0X38 << 1) | I2C_MASTER_READ, true);
+        i2c_master_write_byte(CommandHandle, (I2CAddress << 1) | I2C_MASTER_READ, true);
         i2c_master_read_byte(CommandHandle, pData, I2C_MASTER_ACK);
         i2c_master_read_byte(CommandHandle, ++pData, I2C_MASTER_ACK);
         i2c_master_read_byte(CommandHandle, ++pData, I2C_MASTER_ACK);
@@ -187,7 +187,7 @@ bool AHT10::readRawData()
         Result = i2c_master_cmd_begin(I2CPortNumber, CommandHandle, pdMS_TO_TICKS(1000)) == ESP_OK;
         i2c_cmd_link_delete(CommandHandle);
 
-//        ESP_LOGI(LOG_TAG, "readRawData(), READ Result: %s", (Result ? "OK" : "FAIL"));
+        ESP_LOGD(LOG_TAG, "readRawData(), READ Result: %s", (Result ? "OK" : "FAIL"));
 
         if (Result) {
             memcpy(m_rawData, data, 6);
@@ -199,21 +199,21 @@ bool AHT10::readRawData()
 
 uint8_t AHT10::readStatusByte()
 {
-//    ESP_LOGI(LOG_TAG, "readStatusByte()");
+    ESP_LOGV(LOG_TAG, "readStatusByte()");
 
     i2c_cmd_handle_t CommandHandle = nullptr;
     bool Result = false;
 
     if ((CommandHandle = i2c_cmd_link_create()) != nullptr) {
         i2c_master_start(CommandHandle);
-        i2c_master_write_byte(CommandHandle, (AHT10_ADDRESS_0X38 << 1) | I2C_MASTER_READ, true);
+        i2c_master_write_byte(CommandHandle, (I2CAddress << 1) | I2C_MASTER_READ, true);
         i2c_master_read_byte(CommandHandle, &m_statusByte, I2C_MASTER_ACK);
         i2c_master_stop(CommandHandle);
 
         Result = i2c_master_cmd_begin(I2CPortNumber, CommandHandle, pdMS_TO_TICKS(1000)) == ESP_OK;
         i2c_cmd_link_delete(CommandHandle);
 
-//        ESP_LOGI(LOG_TAG, "readStatusByte(), READ Result: %s, statusByte: %d", (Result ? "OK" : "FAIL"), m_statusByte);
+        ESP_LOGD(LOG_TAG, "readStatusByte(), READ Result: %s, statusByte: %d", (Result ? "OK" : "FAIL"), m_statusByte);
     }
 
     return m_statusByte;

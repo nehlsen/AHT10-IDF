@@ -1,0 +1,35 @@
+menu "AHT10 I2C Temperature and Humidity Sensor"
+
+    choice AHT10_I2C_ADDRESS
+        bool "I2C Address"
+        default AHT10_I2C_ADDRESS_0X38
+
+        config AHT10_I2C_ADDRESS_0X38
+            bool "0x38"
+        config AHT10_I2C_ADDRESS_0X39
+            bool "0x39"
+    endchoice
+
+    config AHT10_PIN_SDA
+        int "SDA Pin"
+        default 5
+
+    config AHT10_PIN_SCL
+        int "SCL Pin"
+        default 4
+
+    config AHT10_I2C_CLOCK_SPEED
+        int "I2C Clock Speed"
+        default 100000
+
+    choice AHT10_I2C_PORT_NUMBER
+        bool "I2C Port Number"
+        default AHT10_I2C_PORT_NUMBER_0
+
+        config AHT10_I2C_PORT_NUMBER_0
+            bool "0"
+        config AHT10_I2C_PORT_NUMBER_1
+            bool "1"
+    endchoice
+
+endmenu
