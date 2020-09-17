@@ -8,10 +8,11 @@ class AHT10
 public:
     AHT10();
 
+    bool readRawData();
     float getTemperature();
     float getHumidity();
 
-    //private:
+private:
     void initBus();
     bool activateOneTimeMode();
     bool activateContinuousMode();
@@ -21,7 +22,6 @@ public:
     bool write3byte(uint8_t byte0, uint8_t byte1, uint8_t byte2);
     bool writeBytes(uint8_t *bytes, uint8_t numberOfBytes);
 
-    bool readRawData();
     uint8_t m_rawData[6];
 
     bool readStatusByte();
