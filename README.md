@@ -1,4 +1,4 @@
-# AHT10 component for the EPS32 IDF
+# AHT10 component for the ESP32 IDF
 
 This is mostly a copy/fork of https://github.com/enjoyneering/AHT10/
 
