@@ -103,27 +103,6 @@ void AHT10::softReset()
 
 bool AHT10::write3byte(uint8_t byte0, uint8_t byte1, uint8_t byte2)
 {
-//    ESP_LOGV(LOG_TAG, "write3byte()");
-//
-//    i2c_cmd_handle_t commandHandle = i2c_cmd_link_create();
-//    if (commandHandle == nullptr) {
-//        ESP_LOGE(LOG_TAG, "write3byte(), failed to acquire i2c command handle");
-//        return false;
-//    }
-//
-//    i2c_master_start(commandHandle);
-//    i2c_master_write_byte(commandHandle, (I2CAddress << 1) | I2C_MASTER_WRITE, true);
-//    i2c_master_write_byte(commandHandle, byte0, true);
-//    i2c_master_write_byte(commandHandle, byte1, true);
-//    i2c_master_write_byte(commandHandle, byte2, true);
-//    i2c_master_stop(commandHandle);
-//    bool i2cCommandResult = i2c_master_cmd_begin(I2CPortNumber, commandHandle, pdMS_TO_TICKS(1000)) == ESP_OK;
-//    i2c_cmd_link_delete(commandHandle);
-//    vTaskDelay(pdMS_TO_TICKS(AHT10_CMD_DELAY));
-//
-//    ESP_LOGD(LOG_TAG, "write3byte(), Result: %s", (i2cCommandResult ? "OK" : "FAIL"));
-//    return i2cCommandResult;
-
     uint8_t bytes[] = {byte0, byte1, byte2};
     return writeBytes(&bytes[0], 3);
 }
