@@ -16,8 +16,10 @@ public:
     bool activateOneTimeMode();
     bool activateContinuousMode();
     bool loadFactoryCalibration();
+    void softReset();
 
     bool write3byte(uint8_t byte0, uint8_t byte1, uint8_t byte2);
+    bool writeBytes(uint8_t *bytes, uint8_t numberOfBytes);
 
     bool readRawData();
     uint8_t m_rawData[6];

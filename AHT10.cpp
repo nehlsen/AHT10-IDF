@@ -92,27 +92,63 @@ bool AHT10::loadFactoryCalibration()
             ) && isCalibrated();
 }
 
+void AHT10::softReset()
+{
+    uint8_t bytes = AHT10_SOFT_RESET_CMD;
+    writeBytes(&bytes, 1);
+    vTaskDelay(pdMS_TO_TICKS(AHT10_SOFT_RESET_DELAY));
+    activateOneTimeMode();
+    loadFactoryCalibration();
+}
+
 bool AHT10::write3byte(uint8_t byte0, uint8_t byte1, uint8_t byte2)
 {
-    ESP_LOGV(LOG_TAG, "write3byte()");
+//    ESP_LOGV(LOG_TAG, "write3byte()");
+//
+//    i2c_cmd_handle_t commandHandle = i2c_cmd_link_create();
+//    if (commandHandle == nullptr) {
+//        ESP_LOGE(LOG_TAG, "write3byte(), failed to acquire i2c command handle");
+//        return false;
+//    }
+//
+//    i2c_master_start(commandHandle);
+//    i2c_master_write_byte(commandHandle, (I2CAddress << 1) | I2C_MASTER_WRITE, true);
+//    i2c_master_write_byte(commandHandle, byte0, true);
+//    i2c_master_write_byte(commandHandle, byte1, true);
+//    i2c_master_write_byte(commandHandle, byte2, true);
+//    i2c_master_stop(commandHandle);
+//    bool i2cCommandResult = i2c_master_cmd_begin(I2CPortNumber, commandHandle, pdMS_TO_TICKS(1000)) == ESP_OK;
+//    i2c_cmd_link_delete(commandHandle);
+//    vTaskDelay(pdMS_TO_TICKS(AHT10_CMD_DELAY));
+//
+//    ESP_LOGD(LOG_TAG, "write3byte(), Result: %s", (i2cCommandResult ? "OK" : "FAIL"));
+//    return i2cCommandResult;
+
+    uint8_t bytes[] = {byte0, byte1, byte2};
+    return writeBytes(&bytes[0], 3);
+}
+
+bool AHT10::writeBytes(uint8_t *bytes, uint8_t numberOfBytes)
+{
+    ESP_LOGV(LOG_TAG, "writeBytes(), numberOfBytes:%d", numberOfBytes);
 
     i2c_cmd_handle_t commandHandle = i2c_cmd_link_create();
     if (commandHandle == nullptr) {
-        ESP_LOGE(LOG_TAG, "write3byte(), failed to acquire i2c command handle");
+        ESP_LOGE(LOG_TAG, "writeBytes(), failed to acquire i2c command handle");
         return false;
     }
 
     i2c_master_start(commandHandle);
     i2c_master_write_byte(commandHandle, (I2CAddress << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(commandHandle, byte0, true);
-    i2c_master_write_byte(commandHandle, byte1, true);
-    i2c_master_write_byte(commandHandle, byte2, true);
+    for (uint8_t n = 0; n < numberOfBytes; ++n) {
+        i2c_master_write_byte(commandHandle, *(bytes+n), true);
+    }
     i2c_master_stop(commandHandle);
     bool i2cCommandResult = i2c_master_cmd_begin(I2CPortNumber, commandHandle, pdMS_TO_TICKS(1000)) == ESP_OK;
     i2c_cmd_link_delete(commandHandle);
     vTaskDelay(pdMS_TO_TICKS(AHT10_CMD_DELAY));
 
-    ESP_LOGD(LOG_TAG, "write3byte(), Result: %s", (i2cCommandResult ? "OK" : "FAIL"));
+    ESP_LOGD(LOG_TAG, "writeBytes(), Result: %s", (i2cCommandResult ? "OK" : "FAIL"));
     return i2cCommandResult;
 }
 
@@ -225,22 +261,3 @@ float AHT10::getHumidity()
     if (humidity > 100) return 100;
     return humidity;
 }
-
-//bool AHT10::softReset(void)
-//{
-//    Wire.beginTransmission(_address);
-//
-//#if (ARDUINO) >= 100
-//    Wire.write(AHT10_SOFT_RESET_CMD);
-//#else
-//    Wire.send(AHT10_SOFT_RESET_CMD);
-//#endif
-//
-//    if (Wire.endTransmission(true) != 0) return false; //safety check, make sure sensor reset
-//
-//    delay(AHT10_SOFT_RESET_DELAY);
-//
-//    setNormalMode();                                   //reinitialize sensor registers after reset
-//
-//    return enableFactoryCalCoeff();                    //reinitialize sensor registers after reset
-//}
