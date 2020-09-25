@@ -35,25 +35,25 @@ static const uint8_t I2CAddress = 0x39;
 static const uint8_t I2CAddress = 0x38;
 #endif
 
-AHT10::AHT10()
+AHT10::AHT10(int i2cPinSda, int i2cPinScl)
 {
     memset(&m_rawData, 0, 6 * sizeof(uint8_t));
 
-    initBus();
+    initBus(i2cPinSda, i2cPinScl);
     activateOneTimeMode();
     readStatusByte();
     loadFactoryCalibration();
 }
 
-void AHT10::initBus()
+void AHT10::initBus(int i2cPinSda, int i2cPinScl)
 {
     ESP_LOGV(LOG_TAG, "initBus()");
 
     i2c_config_t config;
     config.mode = I2C_MODE_MASTER;
-    config.sda_io_num = static_cast<gpio_num_t>(CONFIG_AHT10_PIN_SDA);
+    config.sda_io_num = static_cast<gpio_num_t>(i2cPinSda);
     config.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    config.scl_io_num = static_cast<gpio_num_t>(CONFIG_AHT10_PIN_SCL);
+    config.scl_io_num = static_cast<gpio_num_t>(i2cPinScl);
     config.scl_pullup_en = GPIO_PULLUP_ENABLE;
     config.master.clk_speed = CONFIG_AHT10_I2C_CLOCK_SPEED;
 

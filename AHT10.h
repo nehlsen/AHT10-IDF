@@ -2,18 +2,19 @@
 #define AHT10_H
 
 #include <cstdint>
+#include <sdkconfig.h>
 
 class AHT10
 {
 public:
-    AHT10();
+    explicit AHT10(int i2cPinSda = CONFIG_AHT10_PIN_SDA, int i2cPinScl = CONFIG_AHT10_PIN_SCL);
 
     bool readRawData();
     float getTemperature();
     float getHumidity();
 
 private:
-    void initBus();
+    void initBus(int i2cPinSda, int i2cPinScl);
     bool activateOneTimeMode();
     bool activateContinuousMode();
     bool loadFactoryCalibration();
